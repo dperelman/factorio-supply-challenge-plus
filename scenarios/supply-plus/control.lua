@@ -339,14 +339,28 @@ story_table =
         global.accumulated = {}
         global.extra_items = {}
         global.required = {}
+        global.future_required = {}
         global.labels = {}
         global.level_started_at = event.tick
 
-        local level = levels[global.level]
-        for index, item in pairs(level.requirements) do
-          global.accumulated[item.name] = 0
-          global.required[item.name] = item.count
+        local future_items = global.future_required
+        for level_num, level in pairs(levels) do
+          if level_num == global.level then
+            for index, item in pairs(level.requirements) do
+              global.accumulated[item.name] = 0
+              global.required[item.name] = item.count
+            end
+          elseif level_num > global.level then
+            for index, item in pairs(level.requirements) do
+              if future_items[item.name] then
+                future_items[item.name].count = future_items[item.name].count + item.count
+              else
+                future_items[item.name] = { count = item.count, first_level = level_num }
+              end
+            end
+          end
         end
+
 
         for k, player in pairs (game.players) do
           update_gui(player)
@@ -473,11 +487,16 @@ script.on_init(function()
   game.map_settings.pollution.enabled = false
   game.forces.enemy.evolution_factor = 0
   global.required = {}
+  global.future_required = {}
 
   global.all_items = {}
   for _, level in pairs(levels) do
     for _, item in pairs(level.requirements) do
-      global.all_items[item.name] = true
+      if not global.all_items[item.name] then
+        -- Mark items on the first level they appear on.
+        item.first = true
+        global.all_items[item.name] = true
+      end
     end
   end
 
@@ -503,11 +522,17 @@ end)
 
 script.on_event(defines.events.on_player_created, function(event)
   game.get_player(event.player_index).insert{name = "iron-plate", count = 8}
+
+  -- XXX DEBUG Extra starting items.
+  game.get_player(event.player_index).insert{name = "stone", count = 100}
+  game.get_player(event.player_index).insert{name = "iron-plate", count = 100}
 end)
 
 function update_gui(player)
   local global_settings = settings.global
   local display_level_timer = global_settings["scplus-display-level-timer"].value
+  local display_later_requirements = global_settings["scplus-display-later-requirements"].value
+  local display_future_levels = global_settings["scplus-display-future-levels"].value
 
   local flow = mod_gui.get_frame_flow(player)
   local frame = flow.supply_frame
@@ -537,9 +562,15 @@ function update_gui(player)
 
   local item_prototypes = game.item_prototypes
   local accumulated = global.accumulated
+  local extra = global.extra_items
+  local future = global.future_required
 
-  local table = required_items_flow.add{type = "table", column_count = 3}
+  local column_count = display_later_requirements and 4 or 3
+  local table = required_items_flow.add{type = "table", column_count = column_count}
   table.style.column_alignments[3] = "right"
+  if display_later_requirements then
+    table.style.column_alignments[4] = "right"
+  end
   local level = levels[global.level]
   for index, item in pairs(level.requirements) do
     local accumulated = accumulated[item.name]
@@ -549,18 +580,52 @@ function update_gui(player)
     if accumulated == item.count then
       label.style.font_color = completed_label_color
     end
+
+    if display_later_requirements then
+      local extra = extra[item.name] or 0
+      local future = future[item.name]
+      if future then
+        local label = table.add{type = "label", caption = "(+" .. extra .. "/" .. future.count .. ")"}
+        if extra >= future.count then
+          label.style.font_color = completed_label_color
+        end
+      else
+        table.add{type = "label"}
+      end
+    end
   end
 
   local next_level = levels[global.level + 1]
-  if next_level then
+  if next_level and display_future_levels ~= 0 then
     local next_level_flow = info_table.add{type = "flow", direction = "vertical"}
     next_level_flow.add{type= "label", caption = {"next-level"}, style = "caption_label"}
-    local next_level_table = next_level_flow.add{type = "table", column_count = 3}
+    local next_level_table = next_level_flow.add{type = "table", column_count = column_count}
     next_level_table.style.column_alignments[3] = "right"
+    if display_later_requirements then
+      next_level_table.style.column_alignments[4] = "right"
+    end
     for index, item in pairs(next_level.requirements) do
       local sprite = next_level_table.add{type = "sprite", sprite = "item/"..item.name, style = "small_text_image"}
       next_level_table.add{type = "label", caption = {"", item_prototypes[item.name].localised_name, {"colon"}}}
-      next_level_table.add{type = "label", caption = item.count}
+      local extra = extra[item.name] or 0
+      local label = next_level_table.add{type = "label", caption = math.min(extra, item.count) .. "/" .. item.count}
+      if extra >= item.count then
+        label.style.font_color = completed_label_color
+      end
+
+      if display_later_requirements then
+        local future = future[item.name]
+        if future and future.count > item.count then
+          extra = math.max(0, extra - item.count)
+          future = future.count - item.count
+          local label = next_level_table.add{type = "label", caption = "(+" .. extra .. "/" .. future .. ")"}
+          if extra >= future then
+            label.style.font_color = completed_label_color
+          end
+        else
+          next_level_table.add{type = "label"}
+        end
+      end
     end
   end
 
