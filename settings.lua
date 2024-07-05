@@ -18,21 +18,21 @@ data:extend{
       name = "scplus-display-level-timer",
       setting_type = "runtime-global",
       default_value = true,
-      order = "scplus-ba"
+      order = "scplus-ca"
   },
   {
       type = "bool-setting",
       name = "scplus-display-future-level-timer",
       setting_type = "runtime-global",
       default_value = false,
-      order = "scplus-ba"
+      order = "scplus-eb"
   },
   {
       type = "bool-setting",
       name = "scplus-auto-advance",
       setting_type = "runtime-global",
       default_value = false,
-      order = "scplus-bc"
+      order = "scplus-cc"
   },
   {
       type = "int-setting",
@@ -40,7 +40,7 @@ data:extend{
       setting_type = "runtime-global",
       default_value = -1,
       minimum_value = -1,
-      order = "scplus-ca"
+      order = "scplus-ea"
   },
   {
       type = "bool-setting",
