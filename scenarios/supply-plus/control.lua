@@ -523,10 +523,6 @@ end)
 
 script.on_event(defines.events.on_player_created, function(event)
   game.get_player(event.player_index).insert{name = "iron-plate", count = 8}
-
-  -- XXX DEBUG Extra starting items.
-  game.get_player(event.player_index).insert{name = "stone", count = 100}
-  game.get_player(event.player_index).insert{name = "iron-plate", count = 100}
 end)
 
 function update_gui(player)
