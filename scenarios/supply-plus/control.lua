@@ -657,13 +657,16 @@ function update_gui(player)
           if item.first or not display_later_requirements then
             local sprite = future_level_table.add{type = "sprite", sprite = "item/"..item.name, style = "small_text_image"}
             future_level_table.add{type = "label", caption = {"", item_prototypes[item.name].localised_name, {"colon"}}}
-            local extra = extra[item.name] or 0
-            local label = future_level_table.add{type = "label", caption = math.min(extra, item.count) .. "/" .. item.count}
-            if extra >= item.count then
-              label.style.font_color = completed_label_color
-            end
 
-            if display_later_requirements then
+            if not display_later_requirements then
+              future_level_table.add{type = "label", caption = item.count}
+            else
+              local extra = extra[item.name] or 0
+              local label = future_level_table.add{type = "label", caption = math.min(extra, item.count) .. "/" .. item.count}
+              if extra >= item.count then
+                label.style.font_color = completed_label_color
+              end
+
               local future = future[item.name]
               if future and future.count > item.count then
                 extra = math.max(0, extra - item.count)
