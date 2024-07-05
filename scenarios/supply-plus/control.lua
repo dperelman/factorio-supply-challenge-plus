@@ -504,16 +504,27 @@ function validate_prototypes()
   local items = game.item_prototypes
   local is_error = false
   local bad_items = {}
+  local discard_bad_items = settings.global["scplus-discard-missing-requirements"].value
   for k, level in pairs (levels) do
     for k, item in pairs (level.requirements) do
       if not items[item.name] or item.count <= 0 then
         is_error = true
         bad_items[item.name] = item.count
+        if discard_bad_items then
+          level.requirements[k] = nil
+        end
       end
     end
   end
   if is_error then
-    error("Bad prototypes in supply challenge:\n"..serpent.block(bad_items))
+    if discard_bad_items then
+      local msg = "Bad prototypes in supply challenge, but omitting them and loading anyway:"..
+        serpent.block(bad_items)
+      log(msg)
+      print(msg)
+    else
+      error("Bad prototypes in supply challenge:\n"..serpent.block(bad_items))
+    end
   end
 end
 
