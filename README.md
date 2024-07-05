@@ -24,6 +24,9 @@ Additionally I plan to look into:
 2. Related: possibly treat it as a "directed start": i.e., don't end
    the game after all challenges are satisfied.
 3. Allow some customization of the challenges. Maybe through a mod setting?
+4. Autosave when clicking "Next Level" so you can load and wait longer?
+   Might need to make next level take two clicks for that to work
+   as otherwise wouldn't it load and immediately process the next level event?
 
 This is currently an early work-in-progress. Create an issue (or a pull
 request) if you have an idea for a feature it should have.
