@@ -272,6 +272,12 @@ end
 
 local accumulate_items = function()
   local accumulated = global.accumulated
+  global.extra_items = {}
+  local extra_items = global.extra_items
+  for name, _ in pairs(global.all_items) do
+    extra_items[name] = 0
+  end
+
   for index, chest in pairs(global.chests) do
     if chest.valid then
       local inventory = chest.get_inventory(defines.inventory.chest)
@@ -283,6 +289,9 @@ local accumulate_items = function()
             inventory.remove{name = item_name, count = count_to_consume}
             accumulated[item_name] = accumulated[item_name] + count_to_consume
           end
+          extra_items[item_name] = extra_items[item_name] + count - count_to_consume
+        elseif extra_items[item_name] then
+          extra_items[item_name] = extra_items[item_name] + count
         end
       end
     end
@@ -328,6 +337,7 @@ story_table =
         local auto_advance = global_settings["scplus-auto-advance"].value
 
         global.accumulated = {}
+        global.extra_items = {}
         global.required = {}
         global.labels = {}
         global.level_started_at = event.tick
@@ -463,6 +473,14 @@ script.on_init(function()
   game.map_settings.pollution.enabled = false
   game.forces.enemy.evolution_factor = 0
   global.required = {}
+
+  global.all_items = {}
+  for _, level in pairs(levels) do
+    for _, item in pairs(level.requirements) do
+      global.all_items[item.name] = true
+    end
+  end
+
   global.chests = {}
   for k, chest in pairs (game.surfaces[1].find_entities_filtered{name = "red-chest"}) do
     chest.minable = false
