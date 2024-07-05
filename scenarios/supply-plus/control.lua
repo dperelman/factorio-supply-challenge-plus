@@ -297,10 +297,12 @@ end
 local low_time_left_label_color = {r = 1}
 
 local apply_bonus_points = function()
-  local seconds_left = math.floor(get_time_left() / 60)
-  local points_addition = math.floor(seconds_left * (points_per_second_start - global.level * points_per_second_level_subtract))
-  game.print({"time-bonus", util.format_number(points_addition), seconds_left, points_addition})
-  global.points = global.points + points_addition
+  if not global.would_have_lost then
+    local seconds_left = math.floor(get_time_left() / 60)
+    local points_addition = math.floor(seconds_left * (points_per_second_start - global.level * points_per_second_level_subtract))
+    game.print({"time-bonus", util.format_number(points_addition), seconds_left, points_addition})
+    global.points = global.points + points_addition
+  end
 end
 
 story_table =
@@ -322,6 +324,9 @@ story_table =
     {
       name = "level-start",
       init = function(event)
+        local global_settings = settings.global
+        local auto_advance = global_settings["scplus-auto-advance"].value
+
         global.accumulated = {}
         global.required = {}
         global.labels = {}
@@ -335,7 +340,9 @@ story_table =
 
         for k, player in pairs (game.players) do
           update_gui(player)
-          get_next_level_button(player).enabled = false
+          if not auto_advance then
+            get_next_level_button(player).enabled = false
+          end
         end
       end
     },
@@ -393,8 +400,8 @@ story_table =
                 player.gui.left.clear()
               end
               game.set_game_state{game_finished = true, player_won = false}
-            elseif not game.would_have_lost then
-              game.would_have_lost = { points = global.points, level = global.level, tick = game.tick }
+            elseif not global.would_have_lost then
+              global.would_have_lost = { points = global.points, level = global.level, tick = game.tick }
             end
             return false
           else
@@ -405,17 +412,26 @@ story_table =
         return false
       end,
       action = function(event, story)
-        for k, player in pairs (game.players) do
-          get_next_level_button(player).enabled = false
-        end
-        global.level = global.level + 1
-        local points_addition = (global.level - 1) * 10
-        game.print({"level-completed", global.level - 1, util.format_number(points_addition), points_addition})
-        global.points = global.points + points_addition
+        local global_settings = settings.global
+        local auto_advance = global_settings["scplus-auto-advance"].value
 
-        if global.level < #levels + 1 then
+        if not auto_advance then
           for k, player in pairs (game.players) do
             get_next_level_button(player).enabled = false
+          end
+        end
+        global.level = global.level + 1
+        if not global.would_have_lost then
+          local points_addition = (global.level - 1) * 10
+          game.print({"level-completed", global.level - 1, util.format_number(points_addition), points_addition})
+          global.points = global.points + points_addition
+        end
+
+        if global.level < #levels + 1 then
+          if not auto_advance then
+            for k, player in pairs (game.players) do
+              get_next_level_button(player).enabled = false
+            end
           end
           story_jump_to(story, "level-start")
         end
@@ -423,8 +439,16 @@ story_table =
     },
     {
       action = function()
-        for k, player in pairs (game.players) do
-          player.set_ending_screen_data({"points-achieved", util.format_number(global.points), global.points})
+        if global.would_have_lost then
+          -- TODO Display more info?
+          local data = {"points-achieved", util.format_number(global.would_have_lost.points), global.would_have_lost.points}
+          for k, player in pairs (game.players) do
+            player.set_ending_screen_data(data)
+          end
+        else
+          for k, player in pairs (game.players) do
+            player.set_ending_screen_data({"points-achieved", util.format_number(global.points), global.points})
+          end
         end
       end
     }
