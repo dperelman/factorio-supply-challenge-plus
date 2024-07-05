@@ -1,0 +1,13 @@
+{
+  "name": "SupplyChallengePlus",
+  "version": "0.0.1",
+  "title": "Supply Challenge Plus",
+  "author": "anyoneeb",
+  "contact": "https://github.com/dperelman/factorio-supply-challenge-plus",
+  "homepage": "https://github.com/dperelman/factorio-supply-challenge-plus",
+  "factorio_version": "1.1",
+  "description": "The base game's Supply Challenge modified with additional settings.",
+  "dependencies": [
+    "base >= 1.1"
+  ]
+}
