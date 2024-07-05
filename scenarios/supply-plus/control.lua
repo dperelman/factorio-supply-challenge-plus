@@ -4,7 +4,7 @@ mod_gui = require "mod-gui"
 time_modifier = 1.4
 points_per_second_start = 5
 points_per_second_level_subtract = 0.2
-levels =
+global.levels =
 {
   -- 1
   {
@@ -267,7 +267,7 @@ levels =
 local completed_label_color = {g = 1}
 
 function get_time_left()
-  return global.level_started_at + time_modifier * levels[global.level].time * 60 - game.tick
+  return global.level_started_at + time_modifier * global.levels[global.level].time * 60 - game.tick
 end
 
 local accumulate_items = function()
@@ -344,7 +344,7 @@ story_table =
         global.level_started_at = event.tick
 
         local future_items = global.future_required
-        for level_num, level in pairs(levels) do
+        for level_num, level in pairs(global.levels) do
           if level_num == global.level then
             for index, item in pairs(level.requirements) do
               global.accumulated[item.name] = 0
@@ -396,7 +396,7 @@ story_table =
         local auto_advance = global_settings["scplus-auto-advance"].value
 
         local result = true
-        local level = levels[global.level]
+        local level = global.levels[global.level]
         for index, item in pairs(level.requirements) do
           local accumulated = global.accumulated[item.name]
           if accumulated < item.count then
@@ -451,7 +451,7 @@ story_table =
           global.points = global.points + points_addition
         end
 
-        if global.level < #levels + 1 then
+        if global.level < #global.levels + 1 then
           if not auto_advance then
             for k, player in pairs (game.players) do
               get_next_level_button(player).enabled = false
@@ -490,11 +490,12 @@ script.on_init(function()
   global.future_required = {}
 
   global.all_items = {}
-  for _, level in pairs(levels) do
+  for _, level in pairs(global.levels) do
     for _, item in pairs(level.requirements) do
       if not global.all_items[item.name] then
         -- Mark items on the first level they appear on.
         item.first = true
+        level.any_item_first = true
         global.all_items[item.name] = true
       end
     end
@@ -571,7 +572,7 @@ function update_gui(player)
   if display_later_requirements then
     table.style.column_alignments[4] = "right"
   end
-  local level = levels[global.level]
+  local level = global.levels[global.level]
   for index, item in pairs(level.requirements) do
     local accumulated = accumulated[item.name]
     local sprite = table.add{type = "sprite", sprite = "item/"..item.name, style = "small_text_image"}
@@ -595,7 +596,7 @@ function update_gui(player)
     end
   end
 
-  local next_level = levels[global.level + 1]
+  local next_level = global.levels[global.level + 1]
   if next_level and display_future_levels ~= 0 then
     local next_level_flow = info_table.add{type = "flow", direction = "vertical"}
     next_level_flow.add{type= "label", caption = {"next-level"}, style = "caption_label"}
@@ -629,6 +630,47 @@ function update_gui(player)
     end
   end
 
+  if display_future_levels < 0 or display_future_levels > 1 then
+    for level_num, level in pairs(global.levels) do
+      if level.any_item_first and level_num > global.level + 1 and (display_future_levels < 0 or level_num < global.level + display_future_levels) then
+
+        local future_level_flow = info_table.add{type = "flow", direction = "vertical"}
+        -- TODO Compute time in future if showing level timers?
+        future_level_flow.add{type= "label", caption = {"level", level_num}, style = "caption_label"}
+        local future_level_table = future_level_flow.add{type = "table", column_count = column_count}
+        future_level_table.style.column_alignments[3] = "right"
+        if display_later_requirements then
+          future_level_table.style.column_alignments[4] = "right"
+        end
+        for index, item in pairs(level.requirements) do
+          if item.first or not display_later_requirements then
+            local sprite = future_level_table.add{type = "sprite", sprite = "item/"..item.name, style = "small_text_image"}
+            future_level_table.add{type = "label", caption = {"", item_prototypes[item.name].localised_name, {"colon"}}}
+            local extra = extra[item.name] or 0
+            local label = future_level_table.add{type = "label", caption = math.min(extra, item.count) .. "/" .. item.count}
+            if extra >= item.count then
+              label.style.font_color = completed_label_color
+            end
+
+            if display_later_requirements then
+              local future = future[item.name]
+              if future and future.count > item.count then
+                extra = math.max(0, extra - item.count)
+                future = future.count - item.count
+                local label = future_level_table.add{type = "label", caption = "(+" .. extra .. "/" .. future .. ")"}
+                if extra >= future then
+                  label.style.font_color = completed_label_color
+                end
+              else
+                future_level_table.add{type = "label"}
+              end
+            end
+          end
+        end
+
+      end
+    end
+  end
 end
 
 function validate_prototypes()
@@ -636,7 +678,7 @@ function validate_prototypes()
   local is_error = false
   local bad_items = {}
   local discard_bad_items = settings.global["scplus-discard-missing-requirements"].value
-  for k, level in pairs (levels) do
+  for k, level in pairs (global.levels) do
     for k, item in pairs (level.requirements) do
       if not items[item.name] or item.count <= 0 then
         is_error = true
@@ -663,7 +705,7 @@ function test_fill_chest_requirements()
   assert(global.chests)
   local index, chest = next(global.chests)
   assert(chest.valid)
-  local level = levels[global.level]
+  local level = global.levels[global.level]
   assert(level)
   for k, item in pairs (level.requirements) do
     chest.insert(item)
