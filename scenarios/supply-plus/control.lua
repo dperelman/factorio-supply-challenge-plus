@@ -296,6 +296,13 @@ end
 
 local low_time_left_label_color = {r = 1}
 
+local apply_bonus_points = function()
+  local seconds_left = math.floor(get_time_left() / 60)
+  local points_addition = math.floor(seconds_left * (points_per_second_start - global.level * points_per_second_level_subtract))
+  game.print({"time-bonus", util.format_number(points_addition), seconds_left, points_addition})
+  global.points = global.points + points_addition
+end
+
 story_table =
 {
   {
@@ -346,10 +353,7 @@ story_table =
         if event.name == defines.events.on_gui_click and
         event.element.name == "next_level" then
           if not global.would_have_lost then
-            local seconds_left = math.floor(get_time_left() / 60)
-            local points_addition = math.floor(seconds_left * (points_per_second_start - global.level * points_per_second_level_subtract))
-            game.print({"time-bonus", util.format_number(points_addition), seconds_left, points_addition})
-            global.points = global.points + points_addition
+            apply_bonus_points()
           end
           return true
         end
@@ -357,8 +361,8 @@ story_table =
         if event.tick % 60 ~= 0 then return end
 
         local global_settings = settings.global
-        local lose_on_timeout = global_settings["scplus-lose-on-timeout"]
-        local auto_advance = global_settings["scplus-auto-advance"]
+        local lose_on_timeout = global_settings["scplus-lose-on-timeout"].value
+        local auto_advance = global_settings["scplus-auto-advance"].value
 
         local result = true
         local level = levels[global.level]
@@ -371,6 +375,7 @@ story_table =
 
         if result then
           if auto_advance then
+            apply_bonus_points()
             return true
           else
             for k, player in pairs (game.players) do
@@ -460,7 +465,7 @@ end)
 
 function update_gui(player)
   local global_settings = settings.global
-  local display_level_timer = global_settings["scplus-display-level-timer"]
+  local display_level_timer = global_settings["scplus-display-level-timer"].value
 
   local flow = mod_gui.get_frame_flow(player)
   local frame = flow.supply_frame
@@ -474,8 +479,8 @@ function update_gui(player)
   local info_table = inner.add{type = "table", column_count = 1, style = "bordered_table"}
   info_table.style.margin = 4
   if display_level_timer then
-    local time_left_label = info_table.add{type = "label", name = "time_left", caption = {"time-left", util.formattime(time_left)}}
     local time_left = get_time_left()
+    local time_left_label = info_table.add{type = "label", name = "time_left", caption = {"time-left", util.formattime(time_left)}}
     if time_left < 60 * 30 then
       time_left_label.style.font_color = low_time_left_label_color
     end
