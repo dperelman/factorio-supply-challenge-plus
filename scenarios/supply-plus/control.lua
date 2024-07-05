@@ -534,6 +534,7 @@ function update_gui(player)
   local display_level_timer = global_settings["scplus-display-level-timer"].value
   local display_later_requirements = global_settings["scplus-display-later-requirements"].value
   local display_future_levels = global_settings["scplus-display-future-levels"].value
+  local display_future_timers = global_settings["scplus-display-future-level-timer"].value
 
   local flow = mod_gui.get_frame_flow(player)
   local frame = flow.supply_frame
@@ -546,9 +547,9 @@ function update_gui(player)
   local inner = frame.add{type = "frame", direction = "vertical", style = "inside_shallow_frame"}
   local info_table = inner.add{type = "table", column_count = 1, style = "bordered_table"}
   info_table.style.margin = 4
+  local time_left = (display_level_timer or display_future_timers) and get_time_left() or nil
   if display_level_timer then
-    local time_left = get_time_left()
-    local time_left_label = info_table.add{type = "label", name = "time_left", caption = {"time-left", util.formattime(time_left)}}
+    local time_left_label = info_table.add{type = "label", name = "time_left", caption = {"time-left", util.formattime(global.would_have_lost and 0 or time_left)}}
     if time_left < 60 * 30 then
       time_left_label.style.font_color = low_time_left_label_color
     end
@@ -632,15 +633,25 @@ function update_gui(player)
 
   if display_future_levels < 0 or display_future_levels > 1 then
     for level_num, level in pairs(global.levels) do
-      if level.any_item_first and level_num > global.level + 1 and (display_future_levels < 0 or level_num < global.level + display_future_levels) then
+      if display_future_timers and level_num >= global.level then
+        time_left = time_left + level.time * 60
+      end
+      if (not display_later_requirements or level.any_item_first) and level_num > global.level + 1 and (display_future_levels < 0 or level_num < global.level + display_future_levels) then
 
         local future_level_flow = info_table.add{type = "flow", direction = "vertical"}
-        -- TODO Compute time in future if showing level timers?
         future_level_flow.add{type= "label", caption = {"level", level_num}, style = "caption_label"}
         local future_level_table = future_level_flow.add{type = "table", column_count = column_count}
         future_level_table.style.column_alignments[3] = "right"
         if display_later_requirements then
           future_level_table.style.column_alignments[4] = "right"
+        end
+        if display_future_timers then
+          future_level_table.add{type = "label"}
+          future_level_table.add{type = "label", caption = {"time-left", util.formattime(global.would_have_lost and 0 or time_left)}}
+          future_level_table.add{type = "label"}
+          if display_later_requirements then
+            future_level_table.add{type = "label"}
+          end
         end
         for index, item in pairs(level.requirements) do
           if item.first or not display_later_requirements then

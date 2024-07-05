@@ -22,6 +22,13 @@ data:extend{
   },
   {
       type = "bool-setting",
+      name = "scplus-display-future-level-timer",
+      setting_type = "runtime-global",
+      default_value = false,
+      order = "scplus-ba"
+  },
+  {
+      type = "bool-setting",
       name = "scplus-auto-advance",
       setting_type = "runtime-global",
       default_value = false,
