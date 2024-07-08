@@ -1,0 +1,13 @@
+---------------------------------------------------------------------------------------------------
+Version: 0.0.2
+Date: 2024-07-08
+  Bugfixes:
+    - Removed accidentally included debugging code that granted extra
+      starting items.
+---------------------------------------------------------------------------------------------------
+Version: 0.0.1
+Date: 2024-07-05
+  Features:
+    - Initial release.
+    - Options for disabling timer and displaying future level requirements in
+      a few different ways.
